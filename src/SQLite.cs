@@ -2095,7 +2095,7 @@ namespace SQLite {
 			MappedType = type;
 			CreateFlags = createFlags;
 
-			var tableAttr = type.GetMetaDataAttributes<TableAttribute>().FirstOrDefault ();
+			var tableAttr = type.GetMetaDataAttributes<TableAttribute> ().FirstOrDefault ();
 
 			TableName = (tableAttr != null && !string.IsNullOrEmpty (tableAttr.Name)) ? tableAttr.Name : MappedType.Name;
 			WithoutRowId = tableAttr != null ? tableAttr.WithoutRowId : false;
@@ -2209,7 +2209,7 @@ namespace SQLite {
 			public bool StoreAsText { get; private set; }
 
 			public Column (PropertyInfo prop, CreateFlags createFlags = CreateFlags.None) {
-				var colAttr = prop.GetMetaDataAttributes<ColumnAttribute> ().FirstOrDefault();
+				var colAttr = prop.GetMetaDataAttributes<ColumnAttribute> ().FirstOrDefault ();
 
 				_prop = prop;
 				Name = colAttr?.Name ?? prop.Name;
@@ -2262,7 +2262,7 @@ namespace SQLite {
 			IsEnum = typeInfo.IsEnum;
 
 			if (IsEnum) {
-				StoreAsText = typeInfo.GetMetaDataAttributes<StoreAsTextAttribute> ().Any();
+				StoreAsText = typeInfo.GetMetaDataAttributes<StoreAsTextAttribute> ().Any ();
 
 				if (StoreAsText) {
 					EnumValues = new Dictionary<int, string> ();
@@ -2376,16 +2376,15 @@ namespace SQLite {
 		}
 
 		public static bool IsPK (MemberInfo p) {
-			return p.GetMetaDataAttributes<PrimaryKeyAttribute> ().Any();
+			return p.GetMetaDataAttributes<PrimaryKeyAttribute> ().Any ();
 		}
 
 		public static string Collation (MemberInfo p) {
-			return p.GetMetaDataAttributes<CollationAttribute> ()?.FirstOrDefault()?.Value ?? "";
+			return p.GetMetaDataAttributes<CollationAttribute> ()?.FirstOrDefault ()?.Value ?? "";
 		}
 
-		public static bool IsAutoInc (MemberInfo p)
-		{
-			return p.GetMetaDataAttributes<AutoIncrementAttribute> ().Any();
+		public static bool IsAutoInc (MemberInfo p) {
+			return p.GetMetaDataAttributes<AutoIncrementAttribute> ().Any ();
 		}
 
 		public static FieldInfo GetField (TypeInfo t, string name) {
@@ -2401,17 +2400,16 @@ namespace SQLite {
 				return f;
 			return GetProperty (t.BaseType.GetTypeInfo (), name);
 		}
-		
+
 		public static IEnumerable<IndexedAttribute> GetIndices (MemberInfo p) {
 			return p.GetMetaDataAttributes<IndexedAttribute> ();
 		}
 
 		public static int? MaxStringLength (PropertyInfo p) {
-			return p.GetMetaDataAttributes<MaxLengthAttribute> ().FirstOrDefault()?.Value;
+			return p.GetMetaDataAttributes<MaxLengthAttribute> ().FirstOrDefault ()?.Value;
 		}
 
-		public static bool IsMarkedNotNull (MemberInfo p)
-		{
+		public static bool IsMarkedNotNull (MemberInfo p) {
 			return p.GetMetaDataAttributes<NotNullAttribute> ().Any ();
 		}
 	}
@@ -3915,6 +3913,228 @@ namespace SQLite {
 			Text = 3,
 			Blob = 4,
 			Null = 5
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public class ModelBuilder {
+
+		/// <summary>
+		///
+		/// </summary>
+		public IDictionary<Type, ITypeBuilder> TypeBuilders { get; set; } = new Dictionary<Type, ITypeBuilder> ();
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public TypeBuilder<T> Entity<T> () {
+			if (!TypeBuilders.ContainsKey (typeof (T)))
+				TypeBuilders.Add (typeof (T), new TypeBuilder<T> ());
+
+			return TypeBuilders[typeof (T)] as TypeBuilder<T>;
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public ITypeBuilder Entity (Type type) {
+			if (TypeBuilders.ContainsKey (type))
+				return TypeBuilders[type];
+
+			return null;
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="property"></param>
+		/// <returns></returns>
+		public IEnumerable<T> GetAttributes<T> (PropertyInfo property)
+			where T : Attribute {
+			var attrs = property.GetCustomAttributes<T> (true);
+
+			if (attrs.Any ())
+				return attrs;
+
+			var typeBuilder = Entity (property.DeclaringType);
+
+			return typeBuilder?.PropertyAttributes.Where (x => x.Key == property.Name)
+					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()))
+					.Cast<T> ();
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="info"></param>
+		/// <returns></returns>
+		public IEnumerable<T> GetAttributes<T> (MemberInfo info)
+			where T : Attribute {
+			var attrs = info.GetCustomAttributes<T> (true);
+
+			if (attrs.Any ())
+				return attrs;
+
+			var typeBuilder = Entity (info.DeclaringType);
+
+			return typeBuilder?.PropertyAttributes.Where (x => x.Key == info.Name)
+				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()))
+				.Cast<T> ();
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public IEnumerable<T> GetAttributes<T> (Type type)
+			where T : Attribute {
+			var attrs = type.GetTypeInfo ().GetCustomAttributes<T> ();
+
+			if (attrs.Any ())
+				return attrs;
+
+			var typeBuilder = Entity (type);
+
+			return typeBuilder?.TypeAttributes
+				.Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T> ();
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		public static ModelBuilder Current { get; } = new ModelBuilder ();
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public static class ModelBuilderExtensions {
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="propertyInfo"></param>
+		/// <returns></returns>
+		public static IEnumerable<T> GetMetaDataAttributes<T> (this PropertyInfo propertyInfo)
+			where T : Attribute {
+			return ModelBuilder.Current.GetAttributes<T> (propertyInfo);
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static IEnumerable<T> GetMetaDataAttributes<T> (this Type type)
+			where T : Attribute {
+			return ModelBuilder.Current.GetAttributes<T> (type);
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static IEnumerable<T> GetMetaDataAttributes<T> (this TypeInfo type)
+			where T : Attribute {
+			return ModelBuilder.Current.GetAttributes<T> (type.AsType ());
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="info"></param>
+		/// <returns></returns>
+		public static IEnumerable<T> GetMetaDataAttributes<T> (this MemberInfo info)
+			where T : Attribute {
+			return ModelBuilder.Current.GetAttributes<T> (info);
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public interface ITypeBuilder {
+
+		/// <summary>
+		///
+		/// </summary>
+		Type @Type { get; }
+
+		/// <summary>
+		///
+		/// </summary>
+		IDictionary<string, List<Attribute>> PropertyAttributes { get; }
+
+		/// <summary>
+		///
+		/// </summary>
+		List<Attribute> TypeAttributes { get; }
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	public class TypeBuilder<T> : ITypeBuilder {
+
+		/// <summary>
+		///
+		/// </summary>
+		public Type Type { get; } = typeof (T);
+
+		/// <summary>
+		///
+		/// </summary>
+		public IDictionary<string, List<Attribute>> PropertyAttributes { get; } = new Dictionary<string, List<Attribute>> ();
+
+		/// <summary>
+		///
+		/// </summary>
+		public List<Attribute> TypeAttributes { get; } = new List<Attribute> ();
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <typeparam name="TP"></typeparam>
+		/// <param name="fieldSelector"></param>
+		/// <param name="attributes"></param>
+		/// <returns></returns>
+		public TypeBuilder<T> AddAttribute<TP> (Expression<Func<T, TP>> fieldSelector, params Attribute[] attributes) {
+			var name = (fieldSelector.Body as MemberExpression).Member.Name;
+			if (!PropertyAttributes.ContainsKey (name))
+				PropertyAttributes[name] = new List<Attribute> ();
+
+			PropertyAttributes[name].AddRange (attributes);
+			return this;
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <param name="attributes"></param>
+		/// <returns></returns>
+		public TypeBuilder<T> AddAttribute (params Attribute[] attributes) {
+			var name = "";
+			if (!PropertyAttributes.ContainsKey (name))
+				PropertyAttributes[name] = new List<Attribute> ();
+
+			PropertyAttributes[name].AddRange (attributes);
+			return this;
 		}
 	}
 }

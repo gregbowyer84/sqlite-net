@@ -45,9 +45,6 @@
     <Compile Include="..\..\src\AssemblyInfo.cs">
       <Link>AssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="..\..\src\ModelBuilder.cs">
-      <Link>ModelBuilder.cs</Link>
-    </Compile>
     <Compile Include="..\..\src\SQLite.cs">
       <Link>SQLite.cs</Link>
     </Compile>
