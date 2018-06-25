@@ -49,9 +49,11 @@ using Sqlite3 = Sqlite.Sqlite3;
 using Sqlite3DatabaseHandle = Sqlite.Database;
 using Sqlite3Statement = Sqlite.Statement;
 #elif USE_SQLITEPCL_RAW
+
 using Sqlite3DatabaseHandle = SQLitePCL.sqlite3;
 using Sqlite3Statement = SQLitePCL.sqlite3_stmt;
 using Sqlite3 = SQLitePCL.raw;
+
 #else
 
 using Sqlite3DatabaseHandle = System.IntPtr;
@@ -208,10 +210,11 @@ namespace SQLite {
 		public bool StoreDateTimeAsTicks { get; private set; }
 
 #if USE_SQLITEPCL_RAW && !NO_SQLITEPCL_RAW_BATTERIES
-		static SQLiteConnection ()
-		{
+
+		static SQLiteConnection () {
 			SQLitePCL.Batteries_V2.Init ();
 		}
+
 #endif
 
 		/// <summary>
@@ -2092,12 +2095,7 @@ namespace SQLite {
 			MappedType = type;
 			CreateFlags = createFlags;
 
-			var typeInfo = type.GetTypeInfo ();
-			var tableAttr =
-				typeInfo.CustomAttributes
-						.Where (x => x.AttributeType == typeof (TableAttribute))
-						.Select (x => (TableAttribute)Orm.InflateAttribute (x))
-						.FirstOrDefault ();
+			var tableAttr = type.GetMetaDataAttributes<TableAttribute>().FirstOrDefault ();
 
 			TableName = (tableAttr != null && !string.IsNullOrEmpty (tableAttr.Name)) ? tableAttr.Name : MappedType.Name;
 			WithoutRowId = tableAttr != null ? tableAttr.WithoutRowId : false;
@@ -2211,12 +2209,10 @@ namespace SQLite {
 			public bool StoreAsText { get; private set; }
 
 			public Column (PropertyInfo prop, CreateFlags createFlags = CreateFlags.None) {
-				var colAttr = prop.GetMetaDataAttribute<> ().FirstOrDefault (x => x.AttributeType == typeof (ColumnAttribute));
+				var colAttr = prop.GetMetaDataAttributes<ColumnAttribute> ().FirstOrDefault();
 
 				_prop = prop;
-				Name = (colAttr != null && colAttr.ConstructorArguments.Count > 0) ?
-						colAttr.ConstructorArguments[0].Value?.ToString () :
-						prop.Name;
+				Name = colAttr?.Name ?? prop.Name;
 				//If this type is Nullable<T> then Nullable.GetUnderlyingType returns the T, otherwise it returns null, so get the actual type instead
 				ColumnType = Nullable.GetUnderlyingType (prop.PropertyType) ?? prop.PropertyType;
 				Collation = Orm.Collation (prop);
@@ -2240,7 +2236,7 @@ namespace SQLite {
 				IsNullable = !(IsPK || Orm.IsMarkedNotNull (prop));
 				MaxStringLength = Orm.MaxStringLength (prop);
 
-				StoreAsText = prop.PropertyType.GetTypeInfo ().CustomAttributes.Any (x => x.AttributeType == typeof (StoreAsTextAttribute));
+				StoreAsText = prop.GetMetaDataAttributes<StoreAsTextAttribute> ().Any ();
 			}
 
 			public void SetValue (object obj, object val) {
@@ -2266,7 +2262,7 @@ namespace SQLite {
 			IsEnum = typeInfo.IsEnum;
 
 			if (IsEnum) {
-				StoreAsText = typeInfo.CustomAttributes.Any (x => x.AttributeType == typeof (StoreAsTextAttribute));
+				StoreAsText = typeInfo.GetMetaDataAttributes<StoreAsTextAttribute> ().Any();
 
 				if (StoreAsText) {
 					EnumValues = new Dictionary<int, string> ();
@@ -2380,22 +2376,16 @@ namespace SQLite {
 		}
 
 		public static bool IsPK (MemberInfo p) {
-			return p.CustomAttributes.Any (x => x.AttributeType == typeof (PrimaryKeyAttribute));
+			return p.GetMetaDataAttributes<PrimaryKeyAttribute> ().Any();
 		}
 
 		public static string Collation (MemberInfo p) {
-			return
-				(p.CustomAttributes
-				 .Where (x => typeof (CollationAttribute) == x.AttributeType)
-				 .Select (x => {
-					 var args = x.ConstructorArguments;
-					 return args.Count > 0 ? ((args[0].Value as string) ?? "") : "";
-				 })
-				 .FirstOrDefault ()) ?? "";
+			return p.GetMetaDataAttributes<CollationAttribute> ()?.FirstOrDefault()?.Value ?? "";
 		}
 
-		public static bool IsAutoInc (MemberInfo p) {
-			return p.CustomAttributes.Any (x => x.AttributeType == typeof (AutoIncrementAttribute));
+		public static bool IsAutoInc (MemberInfo p)
+		{
+			return p.GetMetaDataAttributes<AutoIncrementAttribute> ().Any();
 		}
 
 		public static FieldInfo GetField (TypeInfo t, string name) {
@@ -2411,42 +2401,18 @@ namespace SQLite {
 				return f;
 			return GetProperty (t.BaseType.GetTypeInfo (), name);
 		}
-
-		public static object InflateAttribute (CustomAttributeData x) {
-			var atype = x.AttributeType;
-			var typeInfo = atype.GetTypeInfo ();
-			var args = x.ConstructorArguments.Select (a => a.Value).ToArray ();
-			var r = Activator.CreateInstance (x.AttributeType, args);
-			foreach (var arg in x.NamedArguments) {
-				if (arg.IsField) {
-					GetField (typeInfo, arg.MemberName).SetValue (r, arg.TypedValue.Value);
-				}
-				else {
-					GetProperty (typeInfo, arg.MemberName).SetValue (r, arg.TypedValue.Value);
-				}
-			}
-			return r;
-		}
-
+		
 		public static IEnumerable<IndexedAttribute> GetIndices (MemberInfo p) {
-			var indexedInfo = typeof (IndexedAttribute).GetTypeInfo ();
-			return
-				p.CustomAttributes
-				 .Where (x => indexedInfo.IsAssignableFrom (x.AttributeType.GetTypeInfo ()))
-				 .Select (x => (IndexedAttribute)InflateAttribute (x));
+			return p.GetMetaDataAttributes<IndexedAttribute> ();
 		}
 
 		public static int? MaxStringLength (PropertyInfo p) {
-			var attr = p.CustomAttributes.FirstOrDefault (x => x.AttributeType == typeof (MaxLengthAttribute));
-			if (attr != null) {
-				var attrv = (MaxLengthAttribute)InflateAttribute (attr);
-				return attrv.Value;
-			}
-			return null;
+			return p.GetMetaDataAttributes<MaxLengthAttribute> ().FirstOrDefault()?.Value;
 		}
 
-		public static bool IsMarkedNotNull (MemberInfo p) {
-			return p.CustomAttributes.Any (x => x.AttributeType == typeof (NotNullAttribute));
+		public static bool IsMarkedNotNull (MemberInfo p)
+		{
+			return p.GetMetaDataAttributes<NotNullAttribute> ().Any ();
 		}
 	}
 
@@ -3770,13 +3736,12 @@ namespace SQLite {
 		public static extern int LibVersionNumber ();
 
 #else
-		public static Result Open (string filename, out Sqlite3DatabaseHandle db)
-		{
+
+		public static Result Open (string filename, out Sqlite3DatabaseHandle db) {
 			return (Result)Sqlite3.sqlite3_open (filename, out db);
 		}
 
-		public static Result Open (string filename, out Sqlite3DatabaseHandle db, int flags, IntPtr zVfs)
-		{
+		public static Result Open (string filename, out Sqlite3DatabaseHandle db, int flags, IntPtr zVfs) {
 #if USE_WP8_NATIVE_SQLITE
 			return (Result)Sqlite3.sqlite3_open_v2(filename, out db, flags, "");
 #else
@@ -3784,28 +3749,23 @@ namespace SQLite {
 #endif
 		}
 
-		public static Result Close (Sqlite3DatabaseHandle db)
-		{
+		public static Result Close (Sqlite3DatabaseHandle db) {
 			return (Result)Sqlite3.sqlite3_close (db);
 		}
 
-		public static Result Close2 (Sqlite3DatabaseHandle db)
-		{
+		public static Result Close2 (Sqlite3DatabaseHandle db) {
 			return (Result)Sqlite3.sqlite3_close_v2 (db);
 		}
 
-		public static Result BusyTimeout (Sqlite3DatabaseHandle db, int milliseconds)
-		{
+		public static Result BusyTimeout (Sqlite3DatabaseHandle db, int milliseconds) {
 			return (Result)Sqlite3.sqlite3_busy_timeout (db, milliseconds);
 		}
 
-		public static int Changes (Sqlite3DatabaseHandle db)
-		{
+		public static int Changes (Sqlite3DatabaseHandle db) {
 			return Sqlite3.sqlite3_changes (db);
 		}
 
-		public static Sqlite3Statement Prepare2 (Sqlite3DatabaseHandle db, string query)
-		{
+		public static Sqlite3Statement Prepare2 (Sqlite3DatabaseHandle db, string query) {
 			Sqlite3Statement stmt = default (Sqlite3Statement);
 #if USE_WP8_NATIVE_SQLITE || USE_SQLITEPCL_RAW
 			var r = Sqlite3.sqlite3_prepare_v2 (db, query, out stmt);
@@ -3819,58 +3779,47 @@ namespace SQLite {
 			return stmt;
 		}
 
-		public static Result Step (Sqlite3Statement stmt)
-		{
+		public static Result Step (Sqlite3Statement stmt) {
 			return (Result)Sqlite3.sqlite3_step (stmt);
 		}
 
-		public static Result Reset (Sqlite3Statement stmt)
-		{
+		public static Result Reset (Sqlite3Statement stmt) {
 			return (Result)Sqlite3.sqlite3_reset (stmt);
 		}
 
-		public static Result Finalize (Sqlite3Statement stmt)
-		{
+		public static Result Finalize (Sqlite3Statement stmt) {
 			return (Result)Sqlite3.sqlite3_finalize (stmt);
 		}
 
-		public static long LastInsertRowid (Sqlite3DatabaseHandle db)
-		{
+		public static long LastInsertRowid (Sqlite3DatabaseHandle db) {
 			return Sqlite3.sqlite3_last_insert_rowid (db);
 		}
 
-		public static string GetErrmsg (Sqlite3DatabaseHandle db)
-		{
+		public static string GetErrmsg (Sqlite3DatabaseHandle db) {
 			return Sqlite3.sqlite3_errmsg (db);
 		}
 
-		public static int BindParameterIndex (Sqlite3Statement stmt, string name)
-		{
+		public static int BindParameterIndex (Sqlite3Statement stmt, string name) {
 			return Sqlite3.sqlite3_bind_parameter_index (stmt, name);
 		}
 
-		public static int BindNull (Sqlite3Statement stmt, int index)
-		{
+		public static int BindNull (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_bind_null (stmt, index);
 		}
 
-		public static int BindInt (Sqlite3Statement stmt, int index, int val)
-		{
+		public static int BindInt (Sqlite3Statement stmt, int index, int val) {
 			return Sqlite3.sqlite3_bind_int (stmt, index, val);
 		}
 
-		public static int BindInt64 (Sqlite3Statement stmt, int index, long val)
-		{
+		public static int BindInt64 (Sqlite3Statement stmt, int index, long val) {
 			return Sqlite3.sqlite3_bind_int64 (stmt, index, val);
 		}
 
-		public static int BindDouble (Sqlite3Statement stmt, int index, double val)
-		{
+		public static int BindDouble (Sqlite3Statement stmt, int index, double val) {
 			return Sqlite3.sqlite3_bind_double (stmt, index, val);
 		}
 
-		public static int BindText (Sqlite3Statement stmt, int index, string val, int n, IntPtr free)
-		{
+		public static int BindText (Sqlite3Statement stmt, int index, string val, int n, IntPtr free) {
 #if USE_WP8_NATIVE_SQLITE
 			return Sqlite3.sqlite3_bind_text(stmt, index, val, n);
 #elif USE_SQLITEPCL_RAW
@@ -3880,8 +3829,7 @@ namespace SQLite {
 #endif
 		}
 
-		public static int BindBlob (Sqlite3Statement stmt, int index, byte[] val, int n, IntPtr free)
-		{
+		public static int BindBlob (Sqlite3Statement stmt, int index, byte[] val, int n, IntPtr free) {
 #if USE_WP8_NATIVE_SQLITE
 			return Sqlite3.sqlite3_bind_blob(stmt, index, val, n);
 #elif USE_SQLITEPCL_RAW
@@ -3891,68 +3839,55 @@ namespace SQLite {
 #endif
 		}
 
-		public static int ColumnCount (Sqlite3Statement stmt)
-		{
+		public static int ColumnCount (Sqlite3Statement stmt) {
 			return Sqlite3.sqlite3_column_count (stmt);
 		}
 
-		public static string ColumnName (Sqlite3Statement stmt, int index)
-		{
+		public static string ColumnName (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_name (stmt, index);
 		}
 
-		public static string ColumnName16 (Sqlite3Statement stmt, int index)
-		{
+		public static string ColumnName16 (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_name (stmt, index);
 		}
 
-		public static ColType ColumnType (Sqlite3Statement stmt, int index)
-		{
+		public static ColType ColumnType (Sqlite3Statement stmt, int index) {
 			return (ColType)Sqlite3.sqlite3_column_type (stmt, index);
 		}
 
-		public static int ColumnInt (Sqlite3Statement stmt, int index)
-		{
+		public static int ColumnInt (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_int (stmt, index);
 		}
 
-		public static long ColumnInt64 (Sqlite3Statement stmt, int index)
-		{
+		public static long ColumnInt64 (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_int64 (stmt, index);
 		}
 
-		public static double ColumnDouble (Sqlite3Statement stmt, int index)
-		{
+		public static double ColumnDouble (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_double (stmt, index);
 		}
 
-		public static string ColumnText (Sqlite3Statement stmt, int index)
-		{
+		public static string ColumnText (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_text (stmt, index);
 		}
 
-		public static string ColumnText16 (Sqlite3Statement stmt, int index)
-		{
+		public static string ColumnText16 (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_text (stmt, index);
 		}
 
-		public static byte[] ColumnBlob (Sqlite3Statement stmt, int index)
-		{
+		public static byte[] ColumnBlob (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_blob (stmt, index);
 		}
 
-		public static int ColumnBytes (Sqlite3Statement stmt, int index)
-		{
+		public static int ColumnBytes (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_bytes (stmt, index);
 		}
 
-		public static string ColumnString (Sqlite3Statement stmt, int index)
-		{
+		public static string ColumnString (Sqlite3Statement stmt, int index) {
 			return Sqlite3.sqlite3_column_text (stmt, index);
 		}
 
-		public static byte[] ColumnByteArray (Sqlite3Statement stmt, int index)
-		{
+		public static byte[] ColumnByteArray (Sqlite3Statement stmt, int index) {
 			int length = ColumnBytes (stmt, index);
 			if (length > 0) {
 				return ColumnBlob (stmt, index);
@@ -3960,20 +3895,18 @@ namespace SQLite {
 			return new byte[0];
 		}
 
-		public static Result EnableLoadExtension (Sqlite3DatabaseHandle db, int onoff)
-		{
+		public static Result EnableLoadExtension (Sqlite3DatabaseHandle db, int onoff) {
 			return (Result)Sqlite3.sqlite3_enable_load_extension (db, onoff);
 		}
 
-		public static int LibVersionNumber ()
-		{
+		public static int LibVersionNumber () {
 			return Sqlite3.sqlite3_libversion_number ();
 		}
 
-		public static ExtendedResult ExtendedErrCode (Sqlite3DatabaseHandle db)
-		{
+		public static ExtendedResult ExtendedErrCode (Sqlite3DatabaseHandle db) {
 			return (ExtendedResult)Sqlite3.sqlite3_extended_errcode (db);
 		}
+
 #endif
 
 		public enum ColType : int {

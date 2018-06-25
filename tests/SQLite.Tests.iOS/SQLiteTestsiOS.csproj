@@ -99,6 +99,9 @@
     <None Include="Entitlements.plist" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\src\ModelBuilder.cs">
+      <Link>ModelBuilder.cs</Link>
+    </Compile>
     <Compile Include="Main.cs" />
     <Compile Include="UnitTestAppDelegate.cs" />
     <Compile Include="..\AsyncTests.cs" />

@@ -25,6 +25,7 @@
     <PackageReference Include="SQLitePCLRaw.bundle_sqlcipher" Version="1.1.8" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\src\ModelBuilder.cs" Link="ModelBuilder.cs" />
     <Compile Include="..\..\src\SQLite.cs">
       <Link>SQLite.cs</Link>
     </Compile>
