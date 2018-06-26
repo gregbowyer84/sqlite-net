@@ -62,6 +62,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="nuget/SQLite-net-base/bin/Release/netstandard1.1/SQLite-net.*" target="lib/netstandard1.1" />
+    <file src="nuget/SQLite-net-base/bin/Release/netstandard1.1/Nrth.SQLite-net.dll" target="lib/netstandard1.1" />
+    <file src="nuget/SQLite-net-base/bin/Release/netstandard1.1/Nrth.SQLite-net.xml" target="lib/netstandard1.1" />
   </files>
 </package>

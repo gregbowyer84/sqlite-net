@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.1</TargetFramework>
-    <AssemblyName>SQLite-net</AssemblyName>
+    <AssemblyName>Nrth.SQLite-net</AssemblyName>
     <Version>1.0.0</Version>
     <AssemblyTitle>SQLite-net Official .NET Standard Base Library</AssemblyTitle>
     <Description>Light weight library providing easy SQLite database storage</Description>
