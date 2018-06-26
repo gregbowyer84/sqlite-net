@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <version>1.0.0</version>
+    <version>1.0.3</version>
     <authors>Frank Krueger, Greg Bowyer</authors>
     <owners>Agile North</owners>
     <licenseUrl>https://raw.githubusercontent.com/praeclarum/sqlite-net/master/LICENSE.md</licenseUrl>
     <projectUrl>https://github.com/praeclarum/sqlite-net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/praeclarum/sqlite-net/master/nuget/Logo-low.png</iconUrl>
-    <id>Nrth.sqlite-net</id>
-    <title>Agile North sqlite-net</title>
+    <id>nrth.sqlite-net</id>
+    <title>Nrth sqlite-net</title>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>sqlite-net is an open source, minimal library to allow .NET and Mono applications to store data in SQLite databases. It is written in C# 3.0 and is meant to be simply compiled in with your projects. It was first designed to work with MonoTouch on the iPhone, but should work in any other CLI environment.</description>
     <tags>sqlite-net sqlite sql monotouch database metro winrt</tags>

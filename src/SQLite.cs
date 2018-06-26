@@ -216,8 +216,7 @@ namespace SQLite {
 
 #if USE_SQLITEPCL_RAW && !NO_SQLITEPCL_RAW_BATTERIES
 
-		static SQLiteConnection ()
-		{
+		static SQLiteConnection () {
 			SQLitePCL.Batteries_V2.Init ();
 		}
 
@@ -2166,7 +2165,7 @@ namespace SQLite {
 
 			var cols = new List<Column> ();
 			foreach (var p in props) {
-				var ignore = p.IsDefined (typeof (IgnoreAttribute), true);
+				var ignore = p.GetMetaDataAttributes<IgnoreAttribute> ().Any ();
 				if (!ignore) {
 					cols.Add (new Column (p, createFlags));
 				}
@@ -4047,12 +4046,12 @@ namespace SQLite {
 			var typeBuilder = Entity (property.DeclaringType);
 
 			var matches = typeBuilder?.PropertyAttributes.Where (x => x.Key == property.Name)
-					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()));
+					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T> ();
 
-			if (matches.Any ())
-				return matches.Cast<T> ();
+			if (matches == null)
+				matches = new T[0];
 
-			return new T[0];
+			return matches;
 		}
 
 		/// <summary>
@@ -4071,12 +4070,12 @@ namespace SQLite {
 			var typeBuilder = Entity (info.DeclaringType);
 
 			var matches = typeBuilder?.PropertyAttributes.Where (x => x.Key == info.Name)
-				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()));
+				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T>();
 
-			if (matches.Any ())
-				return matches.Cast<T> ();
+			if (matches == null)
+				matches = new T[0];
 
-			return new T[0];
+			return matches;
 		}
 
 		/// <summary>
@@ -4095,12 +4094,12 @@ namespace SQLite {
 			var typeBuilder = Entity (type);
 
 			var matches = typeBuilder?.TypeAttributes
-				.Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()));
+				.Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T>();
 
-			if (matches.Any ())
-				return matches.Cast<T> ();
+			if (matches == null)
+				matches = new T[0];
 
-			return new T[0];
+			return matches;
 		}
 
 		/// <summary>

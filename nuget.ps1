@@ -1,0 +1,1 @@
+foreach ($file in Get-ChildItem *.nuspec) { nuget pack $file }
