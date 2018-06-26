@@ -40,9 +40,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Compile Include="..\src\ModelBuilder.cs">
-      <Link>ModelBuilder.cs</Link>
-    </Compile>
     <Compile Include="BooleanTest.cs" />
     <Compile Include="..\src\SQLite.cs" />
     <Compile Include="ByteArrayTest.cs" />

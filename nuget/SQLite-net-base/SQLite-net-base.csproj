@@ -22,7 +22,6 @@
     <DocumentationFile>bin\Release\netstandard1.1\SQLite-net.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\src\ModelBuilder.cs" Link="ModelBuilder.cs" />
     <Compile Include="..\..\src\SQLite.cs">
       <Link>SQLite.cs</Link>
     </Compile>
