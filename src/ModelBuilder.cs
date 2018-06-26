@@ -55,9 +55,13 @@ namespace SQLite {
 
 			var typeBuilder = Entity (property.DeclaringType);
 
-			return typeBuilder?.PropertyAttributes.Where (x => x.Key == property.Name)
-					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()))
-					.Cast<T> ();
+			var matches = typeBuilder?.PropertyAttributes.Where (x => x.Key == property.Name)
+					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()));
+			
+			if (matches.Any ())
+				return matches.Cast<T> ();
+
+			return new T[0];
 		}
 
 		/// <summary>
@@ -75,9 +79,13 @@ namespace SQLite {
 
 			var typeBuilder = Entity (info.DeclaringType);
 
-			return typeBuilder?.PropertyAttributes.Where (x => x.Key == info.Name)
-				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()))
-				.Cast<T> ();
+			var matches = typeBuilder?.PropertyAttributes.Where (x => x.Key == info.Name)
+				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()));
+
+			if (matches.Any())
+				return matches.Cast<T>();
+
+			return new T[0];
 		}
 
 		/// <summary>
@@ -95,8 +103,13 @@ namespace SQLite {
 
 			var typeBuilder = Entity (type);
 
-			return typeBuilder?.TypeAttributes
-				.Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T> ();
+			var matches = typeBuilder?.TypeAttributes
+				.Where (x => typeof(T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ()));
+
+			if (matches.Any ())
+				return matches.Cast<T> ();
+
+			return new T[0];
 		}
 
 		/// <summary>
