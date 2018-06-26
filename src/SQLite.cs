@@ -4046,7 +4046,7 @@ namespace SQLite {
 			var typeBuilder = Entity (property.DeclaringType);
 
 			var matches = typeBuilder?.PropertyAttributes.Where (x => x.Key == property.Name)
-					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T> ();
+					.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Select(x=>x as T).Where(x=> x != null);
 
 			if (matches == null)
 				matches = new T[0];
@@ -4070,7 +4070,7 @@ namespace SQLite {
 			var typeBuilder = Entity (info.DeclaringType);
 
 			var matches = typeBuilder?.PropertyAttributes.Where (x => x.Key == info.Name)
-				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T>();
+				.SelectMany (x => x.Value).Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Select (x => x as T).Where (x => x != null);
 
 			if (matches == null)
 				matches = new T[0];
@@ -4094,7 +4094,7 @@ namespace SQLite {
 			var typeBuilder = Entity (type);
 
 			var matches = typeBuilder?.TypeAttributes
-				.Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Cast<T>();
+				.Where (x => typeof (T).GetTypeInfo ().IsAssignableFrom (x.GetType ().GetTypeInfo ())).Select(x=>x as T).Where(x=> x != null);
 
 			if (matches == null)
 				matches = new T[0];
